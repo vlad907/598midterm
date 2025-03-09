@@ -3,22 +3,22 @@ from django.core import validators
 from django.contrib.auth.models import User
 
 def validate_position(value):
-    if not (value.startswith("r") and "c" in value and value[1].isdigit() and value[-1].isdigit()):
-        raise forms.ValidationError("Use row and column format, e.g. r1c1.")
+    if len(value) != 2 or value[0] not in "abcdefgh" or value[1] not in "12345678":
+        raise forms.ValidationError("Use standard chess coordinate format, e.g. a1.")
 
 class ChessMoveForm(forms.Form):
     from_position = forms.CharField(
-        min_length=4, max_length=4, strip=True,
-        widget=forms.TextInput(attrs={'placeholder': 'r2c1', 'style': 'font-size:small'}),
-        validators=[validators.MinLengthValidator(4),
-                    validators.MaxLengthValidator(4),
+        min_length=2, max_length=2, strip=True,
+        widget=forms.TextInput(attrs={'placeholder': 'a1', 'style': 'font-size:small'}),
+        validators=[validators.MinLengthValidator(2),
+                    validators.MaxLengthValidator(2),
                     validate_position]
     )
     to_position = forms.CharField(
-        min_length=4, max_length=4, strip=True,
-        widget=forms.TextInput(attrs={'placeholder': 'r4c1', 'style': 'font-size:small'}),
-        validators=[validators.MinLengthValidator(4),
-                    validators.MaxLengthValidator(4),
+        min_length=2, max_length=2, strip=True,
+        widget=forms.TextInput(attrs={'placeholder': 'a1', 'style': 'font-size:small'}),
+        validators=[validators.MinLengthValidator(2),
+                    validators.MaxLengthValidator(2),
                     validate_position]
     )
 

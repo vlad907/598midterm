@@ -7,9 +7,13 @@ from app1.forms import ChessMoveForm, JoinForm, LoginForm
 
 @login_required(login_url='/login/')
 def home(request):
-    page_data = {"board": {}, "chess_form": ChessMoveForm}
-    
-    # If no board exists or a new game is requested
+    if not request.user.is_authenticated:
+        return redirect('/login/')  # Redirects unauthenticated users to login
+
+    # Start with a fresh instance of the form.
+    chess_form_instance = ChessMoveForm()
+
+    # If no board exists or a new game is requested, create a new game.
     if (ChessBoard.objects.filter(user=request.user).count() == 0) or \
        (request.method == 'POST' and 'new_game' in request.POST):
         new_game(request)
@@ -18,7 +22,7 @@ def home(request):
         if chess_form.is_valid():
             from_position = chess_form.cleaned_data["from_position"]
             to_position = chess_form.cleaned_data["to_position"]
-            
+
             try:
                 piece = ChessBoard.objects.get(user=request.user, position=from_position)
                 piece.position = to_position
@@ -26,13 +30,30 @@ def home(request):
             except ChessBoard.DoesNotExist:
                 pass
         else:
-            page_data["chess_form"] = chess_form
-    
-    # Populate page_data from ChessBoard model
+            chess_form_instance = chess_form  # Pass form with errors back to the template
+
+    # Build a dictionary of the board from the database.
+    board_dict = {}
     for piece in ChessBoard.objects.filter(user=request.user):
-        page_data["board"][piece.position] = piece.piece_type
-    
-    return render(request, 'app1/home.html', page_data)
+        board_dict[piece.position] = piece.piece_type
+
+    # Convert the dictionary to a nested list (rows) for easier iteration.
+    # We use standard chess coordinates: files "abcdefgh" and ranks "8" to "1".
+    rows = []
+    for rank in "87654321":
+        row = []
+        for file in "abcdefgh":
+            pos = file + rank  # e.g., "a8", "b8", etc.
+            row.append(board_dict.get(pos, ""))  # Default to empty string if no piece.
+        rows.append(row)
+
+    # Prepare context with rows and form.
+    context = {
+        "rows": rows,
+        "chess_form": chess_form_instance,
+    }
+    return render(request, 'app1/home.html', context)
+
 
 def rules(request):
     return render(request, 'app1/rules.html')
@@ -42,15 +63,20 @@ def about(request):
 
 def new_game(request):
     starting_positions = [
-        ("r1c1", "rook"), ("r1c2", "knight"), ("r1c3", "bishop"), ("r1c4", "queen"), ("r1c5", "king"),
-        ("r1c6", "bishop"), ("r1c7", "knight"), ("r1c8", "rook"),
-        ("r2c1", "pawn"), ("r2c2", "pawn"), ("r2c3", "pawn"), ("r2c4", "pawn"), ("r2c5", "pawn"),
-        ("r2c6", "pawn"), ("r2c7", "pawn"), ("r2c8", "pawn"),
-        ("r8c1", "rook"), ("r8c2", "knight"), ("r8c3", "bishop"), ("r8c4", "queen"), ("r8c5", "king"),
-        ("r8c6", "bishop"), ("r8c7", "knight"), ("r8c8", "rook"),
-        ("r7c1", "pawn"), ("r7c2", "pawn"), ("r7c3", "pawn"), ("r7c4", "pawn"), ("r7c5", "pawn"),
-        ("r7c6", "pawn"), ("r7c7", "pawn"), ("r7c8", "pawn"),
+        # Black Pieces (Top - rank 8 & 7)
+        ("a8", "&#9820;"), ("b8", "&#9822;"), ("c8", "&#9821;"), ("d8", "&#9819;"),
+        ("e8", "&#9818;"), ("f8", "&#9821;"), ("g8", "&#9822;"), ("h8", "&#9820;"),
+        ("a7", "&#9823;"), ("b7", "&#9823;"), ("c7", "&#9823;"), ("d7", "&#9823;"),
+        ("e7", "&#9823;"), ("f7", "&#9823;"), ("g7", "&#9823;"), ("h7", "&#9823;"),
+        
+        # White Pieces (Bottom - rank 2 & 1)
+        ("a2", "&#9817;"), ("b2", "&#9817;"), ("c2", "&#9817;"), ("d2", "&#9817;"),
+        ("e2", "&#9817;"), ("f2", "&#9817;"), ("g2", "&#9817;"), ("h2", "&#9817;"),
+        ("a1", "&#9814;"), ("b1", "&#9816;"), ("c1", "&#9815;"), ("d1", "&#9813;"),
+        ("e1", "&#9812;"), ("f1", "&#9815;"), ("g1", "&#9816;"), ("h1", "&#9814;")
     ]
+
+
     
     ChessBoard.objects.filter(user=request.user).delete()
     
