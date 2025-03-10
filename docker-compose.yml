@@ -1,0 +1,10 @@
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app  # Mount your project directory so changes are picked up
+    environment:
+      - DEBUG=1  # Ensure Django runs in debug mode for auto-reload
