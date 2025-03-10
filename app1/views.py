@@ -4,11 +4,12 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from app1.forms import ChessMoveForm, JoinForm, LoginForm
+from django.contrib import messages
 
 @login_required(login_url='/login/')
 def home(request):
     if not request.user.is_authenticated:
-        return redirect('/login/')  # Redirects unauthenticated users to login
+        return redirect('/login/')  # Redirect unauthenticated users to login
 
     # Start with a fresh instance of the form.
     chess_form_instance = ChessMoveForm()
@@ -23,14 +24,25 @@ def home(request):
             from_position = chess_form.cleaned_data["from_position"]
             to_position = chess_form.cleaned_data["to_position"]
 
+            # Build board_dict early to check occupancy
+            board_dict = {}
+            for p in ChessBoard.objects.filter(user=request.user):
+                board_dict[p.position] = p.piece_type
+
             try:
                 piece = ChessBoard.objects.get(user=request.user, position=from_position)
-                piece.position = to_position
-                piece.save()
+
+                # 1. Check if the target square is occupied
+                if to_position in board_dict:
+                    messages.error(request, "Square {to_position} is already occupied!")
+                else:
+                    # 2. If unoccupied, move the piece
+                    piece.position = to_position
+                    piece.save()
             except ChessBoard.DoesNotExist:
-                pass
+                messages.error(request, "No piece found at {from_position}. Move invalid.")
         else:
-            chess_form_instance = chess_form  # Pass form with errors back to the template
+            chess_form_instance = chess_form
 
     # Build a dictionary of the board from the database.
     board_dict = {}
@@ -38,7 +50,7 @@ def home(request):
         board_dict[piece.position] = piece.piece_type
 
     # Convert the dictionary to a nested list (rows) for easier iteration.
-    # We use standard chess coordinates: files "abcdefgh" and ranks "8" to "1".
+    # Standard chess coordinates: files "abcdefgh" and ranks "8" to "1".
     rows = []
     for rank in "87654321":
         row = []
@@ -47,12 +59,20 @@ def home(request):
             row.append(board_dict.get(pos, ""))  # Default to empty string if no piece.
         rows.append(row)
 
-    # Prepare context with rows and form.
+    # Pair each row with its rank label.
+    paired_rows = []
+    for rank, row in zip("87654321", rows):
+        paired_rows.append({"rank": rank, "cells": row})
+
+    # Prepare context with paired rows, form, and column labels.
     context = {
-        "rows": rows,
+        "paired_rows": paired_rows,
         "chess_form": chess_form_instance,
+        "columns": list("ABCDEFGH"),
     }
     return render(request, 'app1/home.html', context)
+
+
 
 
 def rules(request):

@@ -12,27 +12,77 @@
 <body onload="initChessBoard()">
     {% include "navigation.html" %}
     <div class="container text-center">
+        <div class="mb-3"></div>
         <h1>HTML Chess Board</h1>
-        <div class="chessboard">
-            {% for row in rows %}
-                <div class="row">
-                    {% for cell in row %}
-                        <div class="square">
-                            {{ cell|safe }}
-                        </div>
+        <table class="chessboard">
+            <thead>
+                <tr>
+                    <th></th>
+                    {% for col in columns %}
+                    <th>{{ col }}</th>
                     {% endfor %}
-                </div>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in paired_rows %}
+                <tr>
+                    <th>{{ row.rank }}</th>
+                    {% for cell in row.cells %}
+                    <td>
+                        {{ cell|safe }}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th></th>
+                    {% for col in columns %}
+                    <th>{{ col }}</th>
+                    {% endfor %}
+                </tr>
+            </tfoot>
+        </table>
+        {% if messages %}
+        <div class="alert alert-info">
+            <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
             {% endfor %}
+            </ul>
         </div>
-        <form method="POST">
-            {% csrf_token %}
-            {% bootstrap_form chess_form %}
-            <button type="submit" class="btn btn-primary" name="move">Move</button>
-        </form>
-        <form method="POST">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger" name="new_game">New Game</button>
-        </form>
+        {% endif %}
+        <div class="container">
+            <div class="row justify-content-center align-items-center">
+              <!-- Form Column -->
+              <div class="col-auto">
+                <form method="POST">
+                  {% csrf_token %}
+                  {% bootstrap_form chess_form %}
+                </form>
+              </div>
+              <!-- Buttons Column -->
+              <div class="col-auto">
+                <!-- A flex container that places each form (button) side by side -->
+                <div class="d-flex">
+                  <form method="POST" class="me-2"> <!-- or mr-2 in Bootstrap 4 -->
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary" name="move">
+                      Move
+                    </button>
+                  </form>
+                  <form method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" name="new_game">
+                      New Game
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          
     </div>
 </body>
 </html>
